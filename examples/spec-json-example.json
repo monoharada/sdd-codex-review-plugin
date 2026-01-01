@@ -19,6 +19,67 @@
     }
   },
   "ready_for_implementation": true,
+  "section_tracking": {
+    "enabled": true,
+    "total_sections": 2,
+    "completed_sections": 2,
+    "reviewed_sections": 2,
+    "current_section": null,
+    "sections": {
+      "section-1-core-foundation": {
+        "name": "Section 1: Core Foundation",
+        "tasks": ["1.1", "1.2"],
+        "tasks_completed": {
+          "1.1": true,
+          "1.2": true
+        },
+        "creates_files": [
+          "src/types/base.ts",
+          "src/utils/helpers.ts",
+          "src/utils/helpers.test.ts"
+        ],
+        "modifies_files": [],
+        "e2e_required": false,
+        "e2e_scenarios": [],
+        "e2e_evidence": null,
+        "status": "complete",
+        "reviewed": true,
+        "review_session_id": "codex-section1-abc123"
+      },
+      "section-2-feature-impl": {
+        "name": "Section 2: Feature Implementation [E2E]",
+        "tasks": ["2.1", "2.2"],
+        "tasks_completed": {
+          "2.1": true,
+          "2.2": true
+        },
+        "creates_files": [
+          "src/components/Main.tsx",
+          "src/components/Main.test.tsx"
+        ],
+        "modifies_files": [],
+        "e2e_required": true,
+        "e2e_scenarios": [
+          { "task": "2.1", "scenario": "コンポーネント初期表示、ユーザー操作確認" },
+          { "task": "2.2", "scenario": "フォーム入力、バリデーション表示" }
+        ],
+        "e2e_evidence": {
+          "status": "passed",
+          "video_path": null,
+          "screenshots": [
+            ".context/e2e-evidence/example-feature/section-2-feature-impl/step-01-initial.png",
+            ".context/e2e-evidence/example-feature/section-2-feature-impl/step-02-action.png",
+            ".context/e2e-evidence/example-feature/section-2-feature-impl/step-03-complete.png"
+          ],
+          "executed_at": "2025-12-29T15:00:00.000Z",
+          "error_message": null
+        },
+        "status": "complete",
+        "reviewed": true,
+        "review_session_id": "codex-section2-def456"
+      }
+    }
+  },
   "codex_reviews": {
     "requirements": {
       "review_count": 2,
@@ -42,10 +103,25 @@
       "timestamp": "2025-12-29T14:00:00.000Z"
     },
     "impl": {
-      "review_count": 3,
+      "mode": "section",
+      "sections": {
+        "section-1-core-foundation": {
+          "review_count": 1,
+          "final_verdict": "APPROVED",
+          "resolved_issues": 2,
+          "session_id": "codex-section1-abc123",
+          "timestamp": "2025-12-29T14:30:00.000Z"
+        },
+        "section-2-feature-impl": {
+          "review_count": 2,
+          "final_verdict": "APPROVED",
+          "resolved_issues": 3,
+          "session_id": "codex-section2-def456",
+          "timestamp": "2025-12-29T15:30:00.000Z"
+        }
+      },
+      "all_sections_approved": true,
       "final_verdict": "APPROVED",
-      "resolved_issues": 5,
-      "session_id": "codex-session-jkl012",
       "timestamp": "2025-12-29T15:30:00.000Z"
     }
   }

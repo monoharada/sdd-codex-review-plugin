@@ -16,6 +16,13 @@ Automated code review skill using OpenAI Codex CLI for Spec-Driven Development w
 /sdd-codex-review tasks [feature-name]
 /sdd-codex-review impl [feature-name]
 
+# Section-based impl review (recommended)
+/sdd-codex-review impl-section [feature-name] [section-id]
+/sdd-codex-review impl-pending [feature-name]
+
+# E2E evidence collection (for [E2E] tagged sections)
+/sdd-codex-review e2e-evidence [feature-name] [section-id]
+
 # Auto-progress mode (review all phases sequentially)
 /sdd-codex-review auto [feature-name]
 ```
@@ -62,9 +69,25 @@ OKが出るまでフィードバックループを繰り返します。
 /sdd-codex-review tasks [feature-name]
 /sdd-codex-review impl [feature-name]
 
+# セクション単位のimplレビュー（推奨）
+/sdd-codex-review impl-section [feature-name] [section-id]
+/sdd-codex-review impl-pending [feature-name]
+
+# E2Eエビデンス収集（[E2E]タグ付きセクション用）
+/sdd-codex-review e2e-evidence [feature-name] [section-id]
+
 # 自動進行モード
 /sdd-codex-review auto [feature-name]
 ```
+
+### コマンド一覧
+
+| コマンド | 説明 |
+|----------|------|
+| `impl-section [feature] [section-id]` | 特定セクションをレビュー |
+| `impl-pending [feature]` | 完了済み・未レビューのセクションを全てレビュー |
+| `impl [feature]` | 全実装を一括レビュー（従来方式） |
+| `e2e-evidence [feature] [section-id]` | E2Eエビデンス収集（手動実行用） |
 
 ---
 
@@ -84,6 +107,186 @@ OKが出るまでフィードバックループを繰り返します。
 │ ユーザー報告 │                └──────────┘          │ 介入要求 │
 └──────────────┘                                      └──────────┘
 ```
+
+---
+
+## セクション単位レビュー
+
+### 概要
+
+実装フェーズでは、**セクション単位**でレビューを実行することを推奨します。
+これにより、タスクごとのレビューオーバーヘッドを削減し、効率的なレビューサイクルを実現します。
+
+### セクション定義
+
+tasks.mdの`##`見出しでセクションを定義：
+
+```markdown
+## Section 1: Core Foundation
+### Task 1.1: Define base types
+**Creates:** `src/types/base.ts`
+
+### Task 1.2: Implement utilities
+**Creates:** `src/utils/helpers.ts`
+
+## Section 2: Feature Implementation
+### Task 2.1: Build main component
+**Creates:** `src/components/Main.tsx`
+```
+
+### 完了検知アルゴリズム
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│ タスク実装  │ ──▶ │ セクション完了   │ ──▶ │ 全ファイル  │
+│ 完了        │     │ チェック         │     │ 存在?       │
+└─────────────┘     └──────────────────┘     └──────┬──────┘
+                                                    │
+                            ┌───────────────────────┴───────┐
+                            │ YES                           │ NO
+                            ▼                               ▼
+                    ┌──────────────┐                ┌──────────────┐
+                    │ レビュー済み?│                │ 次タスクへ   │
+                    └──────┬───────┘                └──────────────┘
+                           │ NO
+                           ▼
+                    ┌──────────────┐
+                    │ Codex Review │
+                    │ 実行         │
+                    └──────────────┘
+```
+
+### 完了検知ロジック
+
+1. **セクション解析**: tasks.mdから`##`見出しを検出
+2. **ファイル抽出**: 各タスクの`**Creates:**`/`**Modifies:**`からファイル一覧を取得
+3. **存在確認**: 全期待ファイルが存在するか確認
+4. **レビュートリガー**: 完了 AND 未レビュー の場合にレビュー実行
+
+### impl-section コマンド
+
+特定のセクションをレビュー：
+
+```bash
+/sdd-codex-review impl-section my-feature section-1-core-foundation
+```
+
+**処理フロー**:
+1. `.kiro/specs/[feature]/tasks.md`を解析
+2. 指定セクションのタスク・ファイル一覧を取得
+3. セクション専用プロンプトでCodex実行
+4. spec.jsonの`section_tracking`と`codex_reviews.impl.sections`を更新
+
+### impl-pending コマンド
+
+完了済み・未レビューのセクションを順次レビュー：
+
+```bash
+/sdd-codex-review impl-pending my-feature
+```
+
+**処理フロー**:
+1. spec.jsonから`section_tracking`を読み込み
+2. `status === "complete" && reviewed === false`のセクションを抽出
+3. 各セクションに対して`impl-section`相当の処理を実行
+
+詳細: [workflows/section-detection.md](workflows/section-detection.md)
+
+---
+
+## E2Eエビデンス収集
+
+### 概要
+
+`[E2E]` タグ付きセクションでは、**Codexレビュー承認後**にPlaywright MCPを使用してE2Eテストのエビデンス（スクリーンショット）を自動収集します。
+
+### なぜレビュー後に実行するのか
+
+1. **品質優先**: レビュー済みのコードでエビデンスを取得（バグを含む状態を記録しない）
+2. **効率性**: 修正が入る可能性があるレビュー前にE2Eを実行するのは無駄
+3. **エビデンス目的**: 最終的な承認済みコードの動作を記録する
+
+### セクションフォーマット
+
+```markdown
+## Section 2: User Dashboard [E2E]
+
+### Task 2.1: Build dashboard layout
+**Creates:** `src/components/Dashboard.tsx`
+**E2E:** ダッシュボード初期表示、ウィジェット配置確認
+
+### Task 2.2: Add data refresh
+**Creates:** `src/hooks/useRefresh.ts`
+**E2E:** 更新ボタン動作、ローディング表示
+```
+
+### トリガー条件
+
+```
+Codexレビュー APPROVED AND e2e_required = true AND e2e_evidence.status = "pending"
+```
+
+### 実行フロー
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    セクション完了                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    ┌──────────────────────┐
+                    │    Codexレビュー     │
+                    └──────────────────────┘
+                              │
+                      ┌───────┴───────┐
+                      │               │
+                  APPROVED       NEEDS_REVISION
+                      │               │
+                      ▼               ▼
+              ┌───────────────┐  ┌───────────────┐
+              │ E2E必要?      │  │ 修正→再レビュー│
+              │ ([E2E]タグ)   │  └───────────────┘
+              └───────────────┘
+                │           │
+               YES          NO
+                │           │
+                ▼           ▼
+   ┌────────────────────┐  ┌────────────────────┐
+   │ E2Eエビデンス収集  │  │ セクション完了     │
+   │ (Playwright MCP)   │  │ 次のセクションへ   │
+   └────────────────────┘  └────────────────────┘
+                │
+                ▼
+   ┌────────────────────┐
+   │ エビデンス確認&報告│
+   │ セクション完了     │
+   └────────────────────┘
+```
+
+### エビデンス保存先
+
+```
+.context/e2e-evidence/
+└── [feature-name]/
+    └── [section-id]/
+        ├── step-01-initial.png
+        ├── step-02-action.png
+        └── step-03-complete.png
+```
+
+### E2Eエビデンスコマンド
+
+```bash
+# 手動でE2Eエビデンスを収集（レビュー承認済みセクションのみ）
+/sdd-codex-review e2e-evidence [feature-name] [section-id]
+```
+
+### 重要: E2E失敗はブロッキングではない
+
+E2Eエビデンス収集が失敗しても、セクションは完了として扱います。
+E2Eはエビデンス目的であり、品質ゲートではありません。
+
+詳細: [workflows/e2e-evidence.md](workflows/e2e-evidence.md)
 
 ---
 
@@ -119,6 +322,8 @@ correctness, security, perf, maintainability, testing, style
 | トピック | ファイル |
 |----------|----------|
 | Phase 1-4詳細・修正ループ | [workflows/phase-workflows.md](workflows/phase-workflows.md) |
+| セクション検出アルゴリズム | [workflows/section-detection.md](workflows/section-detection.md) |
+| E2Eエビデンス収集 | [workflows/e2e-evidence.md](workflows/e2e-evidence.md) |
 | 規模別戦略（small/medium/large） | [workflows/scale-strategies.md](workflows/scale-strategies.md) |
 | コンテキスト節約モード | [workflows/context-saving.md](workflows/context-saving.md) |
 | spec.json仕様 | [reference/spec-json-format.md](reference/spec-json-format.md) |
@@ -133,6 +338,8 @@ correctness, security, perf, maintainability, testing, style
 | 設計 | [prompts/design-review.md](prompts/design-review.md) |
 | タスク | [prompts/tasks-review.md](prompts/tasks-review.md) |
 | 実装 | [prompts/impl-review.md](prompts/impl-review.md) |
+| セクション実装 | [prompts/section-impl-review.md](prompts/section-impl-review.md) |
+| E2Eエビデンス | [prompts/e2e-evidence-prompt.md](prompts/e2e-evidence-prompt.md) |
 | アーキテクチャ | [prompts/arch-review.md](prompts/arch-review.md) |
 | クロスチェック | [prompts/cross-check-review.md](prompts/cross-check-review.md) |
 

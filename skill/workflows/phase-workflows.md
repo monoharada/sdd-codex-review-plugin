@@ -172,6 +172,146 @@ codex exec --sandbox read-only review --uncommitted "[追加の指示]"
 
 ---
 
+## Phase 4b: セクション単位実装レビュー（推奨）
+
+### 概要
+
+実装フェーズでは、タスクごとではなく**セクション単位**でレビューを実行することを推奨します。
+これにより、レビューオーバーヘッドを削減し、セクション間の整合性を確認できます。
+
+### トリガー条件
+
+セクション完了時に自動的にレビューをトリガー：
+
+```
+タスク実装完了
+    ↓
+セクション完了チェック（全期待ファイル存在確認）
+    ↓
+完了 AND 未レビュー → Codexレビュー実行
+```
+
+### コマンド
+
+```bash
+# 特定セクションをレビュー
+/sdd-codex-review impl-section [feature-name] [section-id]
+
+# 完了済み・未レビューのセクションを全てレビュー
+/sdd-codex-review impl-pending [feature-name]
+```
+
+### 処理フロー
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐
+│ タスク実装  │ ──▶ │ セクション完了   │ ──▶ │ 全ファイル  │
+│ 完了        │     │ チェック         │     │ 存在?       │
+└─────────────┘     └──────────────────┘     └──────┬──────┘
+                                                    │
+                            ┌───────────────────────┴───────┐
+                            │ YES                           │ NO
+                            ▼                               ▼
+                    ┌──────────────┐                ┌──────────────┐
+                    │ レビュー済み?│                │ 次タスクへ   │
+                    └──────┬───────┘                │ 続行         │
+                           │ NO                     └──────────────┘
+                           ▼
+                    ┌──────────────┐
+                    │ Codex Review │
+                    │ 実行         │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │ spec.json    │
+                    │ 更新         │
+                    └──────────────┘
+```
+
+### セクション定義
+
+tasks.mdの`##`見出しでセクションを定義：
+
+```markdown
+## Section 1: Core Foundation
+### Task 1.1: Define base types
+**Creates:** `src/types/base.ts`
+
+### Task 1.2: Implement utilities
+**Creates:** `src/utils/helpers.ts`
+
+## Section 2: Feature Implementation
+### Task 2.1: Build main component
+**Creates:** `src/components/Main.tsx`
+```
+
+### 完了判定ロジック
+
+1. tasks.mdから`##`見出しを検出してセクション境界を特定
+2. 各タスクの`**Creates:**`/`**Modifies:**`からファイル一覧を抽出
+3. 全ファイルが存在するか確認
+4. 全ファイル存在 = セクション完了
+
+### Codex呼び出し
+
+```bash
+codex exec --sandbox read-only "
+[section-impl-review.mdプロンプト]
+セクション: {{SECTION_NAME}}
+タスク: {{SECTION_TASK_IDS}}
+変更ファイル: {{SECTION_FILES}}
+"
+```
+
+### spec.json更新（APPROVED時）
+
+```javascript
+// section_tracking更新
+spec.section_tracking.sections[sectionId].status = "complete";
+spec.section_tracking.sections[sectionId].reviewed = true;
+spec.section_tracking.sections[sectionId].review_session_id = sessionId;
+spec.section_tracking.reviewed_sections += 1;
+
+// codex_reviews更新
+spec.codex_reviews.impl.sections[sectionId] = {
+  review_count: count,
+  final_verdict: "APPROVED",
+  resolved_issues: issueCount,
+  session_id: sessionId,
+  timestamp: new Date().toISOString()
+};
+
+// 全セクション完了チェック
+if (allSectionsApproved) {
+  spec.codex_reviews.impl.all_sections_approved = true;
+  spec.codex_reviews.impl.final_verdict = "APPROVED";
+  spec.phase = "impl-approved";
+}
+```
+
+### セクション境界の尊重
+
+レビュー時は、セクション境界を明示的に伝える：
+
+```bash
+codex exec --sandbox read-only resume [SESSION_ID] "
+## セクション境界の明確化
+
+### このセクションで完了すべき
+- [機能A]
+- [機能B]
+
+### 後続セクションで対応予定
+- [機能C] → Section 2で実装
+- [機能D] → Section 3で実装
+
+後続セクションで対応予定の項目はblockingとしないでください。
+"
+```
+
+---
+
 ## 自動進行モード
 
 ### トリガー
