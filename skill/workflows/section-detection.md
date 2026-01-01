@@ -143,19 +143,20 @@ FUNCTION isSectionComplete(sectionId):
         IF NOT fileExists(file):
             RETURN false
 
-    // 2. Modifies ファイル: git diff で実変更を確認
+    // 2. Modifies ファイル: ベースブランチからの差分で実変更を確認
     FOR each file in section.modifies_files:
         IF NOT fileExists(file):
             RETURN false
-        IF NOT hasUncommittedChanges(file):
-            // 変更がない = まだ実装されていない
+        IF NOT hasChangesFromBaseBranch(file):
+            // ベースブランチからの変更がない = まだ実装されていない
             RETURN false
 
     RETURN true
 
-FUNCTION hasUncommittedChanges(file):
-    // git diff でファイルに変更があるか確認
-    result = exec("git diff HEAD -- " + file)
+FUNCTION hasChangesFromBaseBranch(file, baseBranch = "main"):
+    // ベースブランチからの差分でファイルに変更があるか確認
+    // コミット済みの変更も検出するため、HEAD比較ではなくベースブランチ比較を使用
+    result = exec("git diff " + baseBranch + "..HEAD -- " + file)
     RETURN result.length > 0
 ```
 
@@ -164,7 +165,15 @@ FUNCTION hasUncommittedChanges(file):
 | タイプ | 完了条件 | 理由 |
 |--------|----------|------|
 | `**Creates:**` | ファイル存在 | 新規ファイルなので存在=実装完了 |
-| `**Modifies:**` | ファイル存在 + git diff あり | 既存ファイルなので変更検知が必要 |
+| `**Modifies:**` | ファイル存在 + ベースブランチからの差分あり | 既存ファイルなので変更検知が必要 |
+
+### ベースブランチ差分の理由
+
+`git diff main..HEAD` を使用する理由：
+
+1. **コミット済み変更の検出**: `git diff HEAD` はuncommittedな変更のみ検出するが、`main..HEAD` はブランチ作成後の全コミットを含む
+2. **レビュー単位との整合性**: 実装レビューはブランチ単位で行うため、ベースブランチからの全変更を対象とするのが自然
+3. **シンプルさ**: 直近レビューコミットを追跡するより、ベースブランチを基準とする方が実装が単純
 
 ### 代替案: タスク完了フラグ併用
 
@@ -232,9 +241,12 @@ FUNCTION shouldTriggerReview(sectionId):
       "name": "Section 1: Core Foundation",
       "line_range": [1, 25],
       "tasks": ["1.1", "1.2"],
-      "expected_files": [
+      "creates_files": [
         "src/types/base.ts",
         "src/utils/helpers.ts"
+      ],
+      "modifies_files": [
+        "src/config/index.ts"
       ],
       "e2e_required": false,
       "e2e_scenarios": [],
@@ -247,11 +259,12 @@ FUNCTION shouldTriggerReview(sectionId):
       "name": "Section 2: Feature Implementation [E2E]",
       "line_range": [26, 50],
       "tasks": ["2.1", "2.2"],
-      "expected_files": [
+      "creates_files": [
         "src/components/Main.tsx",
         "src/components/Main.test.tsx",
         "src/components/UserForm.tsx"
       ],
+      "modifies_files": [],
       "e2e_required": true,
       "e2e_scenarios": [
         { "task": "2.1", "scenario": "コンポーネントの初期表示確認、ユーザー操作テスト" },
@@ -386,7 +399,7 @@ E2Eエビデンス収集（Playwright MCP）
     ↓
 結果を e2e_evidence に保存
     ↓
-動画ファイルを自動オープン
+エビデンスディレクトリを自動オープン
     ↓
 セクション完了、次へ進行
 ```
@@ -403,11 +416,12 @@ E2Eエビデンス収集（Playwright MCP）
 .context/e2e-evidence/
 └── [feature-name]/
     └── [section-id]/
-        ├── recording.webm          # 画面録画
         ├── step-01-initial.png     # 初期状態
         ├── step-02-action.png      # 操作後
         └── step-03-complete.png    # 完了状態
 ```
+
+**注意**: Playwright MCPは直接録画機能を提供しないため、スクリーンショットのみがエビデンスとして収集されます。
 
 ---
 

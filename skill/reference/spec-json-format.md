@@ -139,9 +139,12 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
       "section-1-core-foundation": {
         "name": "Section 1: Core Foundation",
         "tasks": ["1.1", "1.2"],
-        "expected_files": [
+        "creates_files": [
           "src/types/base.ts",
           "src/utils/helpers.ts"
+        ],
+        "modifies_files": [
+          "src/config/index.ts"
         ],
         "status": "complete",
         "reviewed": true,
@@ -150,10 +153,11 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
       "section-2-feature-impl": {
         "name": "Section 2: Feature Implementation",
         "tasks": ["2.1", "2.2"],
-        "expected_files": [
+        "creates_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
         ],
+        "modifies_files": [],
         "status": "in_progress",
         "reviewed": false,
         "review_session_id": null
@@ -180,7 +184,8 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
 |-----------|-----|------|
 | `name` | string | セクション表示名 |
 | `tasks` | string[] | セクション内のタスクID配列 |
-| `expected_files` | string[] | タスクが作成/変更するファイル一覧 |
+| `creates_files` | string[] | `**Creates:**` で指定されたファイル（存在確認のみ） |
+| `modifies_files` | string[] | `**Modifies:**` で指定されたファイル（ベースブランチ差分確認） |
 | `status` | string | `"pending"` / `"in_progress"` / `"complete"` |
 | `reviewed` | boolean | Codexレビュー済みか |
 | `review_session_id` | string / null | Codex Session ID |
@@ -338,10 +343,11 @@ E2Eはエビデンス目的であり、品質ゲートではありません。
       "section-1-core-foundation": {
         "name": "Section 1: Core Foundation",
         "tasks": ["1.1", "1.2"],
-        "expected_files": [
+        "creates_files": [
           "src/types/base.ts",
           "src/utils/helpers.ts"
         ],
+        "modifies_files": [],
         "e2e_required": false,
         "e2e_scenarios": [],
         "e2e_evidence": null,
@@ -352,10 +358,11 @@ E2Eはエビデンス目的であり、品質ゲートではありません。
       "section-2-feature-impl": {
         "name": "Section 2: Feature Implementation [E2E]",
         "tasks": ["2.1", "2.2"],
-        "expected_files": [
+        "creates_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
         ],
+        "modifies_files": [],
         "e2e_required": true,
         "e2e_scenarios": [
           { "task": "2.1", "scenario": "コンポーネント初期表示、ユーザー操作確認" },

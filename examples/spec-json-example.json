@@ -29,11 +29,12 @@
       "section-1-core-foundation": {
         "name": "Section 1: Core Foundation",
         "tasks": ["1.1", "1.2"],
-        "expected_files": [
+        "creates_files": [
           "src/types/base.ts",
           "src/utils/helpers.ts",
           "src/utils/helpers.test.ts"
         ],
+        "modifies_files": [],
         "e2e_required": false,
         "e2e_scenarios": [],
         "e2e_evidence": null,
@@ -44,10 +45,11 @@
       "section-2-feature-impl": {
         "name": "Section 2: Feature Implementation [E2E]",
         "tasks": ["2.1", "2.2"],
-        "expected_files": [
+        "creates_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
         ],
+        "modifies_files": [],
         "e2e_required": true,
         "e2e_scenarios": [
           { "task": "2.1", "scenario": "コンポーネント初期表示、ユーザー操作確認" },
