@@ -47,24 +47,27 @@
 
 | # | 条件 | 説明 |
 |---|------|------|
-| 1 | `spec.json` phase == `"initialized"` | 初回実行（要件未承認） |
-| 2 | `approvals.requirements.approved` == `false` | 要件が未承認 |
-| 3 | `requirements.md` プロジェクト説明が欠落/不十分 | コンテキスト不足 |
-| 4 | `spec.json` に `interview.requirements: true` | 明示的なフラグ |
+| 1 | `interview.md` が存在しない AND (`phase == "initialized"` OR `approvals.requirements.approved == false`) | 初回実行時のみ |
+| 2 | `interview.md` が存在しない AND `requirements.md` プロジェクト説明が欠落/不十分 | コンテキスト不足時（初回のみ） |
+| 3 | `spec.json` に `interview.requirements: true` | 明示的なフラグ（常に実行） |
 
 ### 条件判定ロジック
 
 ```
-IF phase == "initialized" OR approvals.requirements.approved == false THEN
-  RUN preflight interview
+IF spec.json contains interview.requirements: true THEN
+  RUN preflight interview (explicit flag always triggers)
+ELSE IF interview.md exists THEN
+  SKIP preflight interview (already interviewed)
+ELSE IF phase == "initialized" OR approvals.requirements.approved == false THEN
+  RUN preflight interview (first run)
 ELSE IF requirements.md project description is missing/thin THEN
-  RUN preflight interview
-ELSE IF spec.json contains interview.requirements: true THEN
-  RUN preflight interview
+  RUN preflight interview (context needed)
 ELSE
   SKIP preflight interview (proceed directly to generation)
 END
 ```
+
+**ポイント**: `interview.md` が存在する場合、明示フラグがない限りインタビューをスキップします。これにより、承認前の再実行でも不要なインタビューを回避し、速度を維持します。
 
 ---
 
@@ -218,30 +221,42 @@ END
 **シナリオ**: フィーチャーの初回要件生成
 
 **手順**:
-1. `/kiro:spec-requirements <feature>` を実行
-2. `spec.json` の phase が `"initialized"` または `approvals.requirements.approved` が `false` であることを確認
+1. `interview.md` が存在しないことを確認
+2. `/kiro:spec-requirements <feature>` を実行
 
 **期待結果**:
 - プリフライトインタビューが実行される（日本語、最大8問）
+- `interview.md` が作成される
 - `requirements.md` が spec.json で指定された言語で生成される
 - メタデータ更新が行われる（phase: `"requirements-approved"` after Codex review）
 - `/sdd-codex-review requirements <feature>` が呼び出される
 
-### Test 2: 十分な説明がある場合の再実行
+### Test 2: 2回目以降の実行（interview.md存在時）
 
-**シナリオ**: 既に十分なプロジェクト説明がある状態での再実行
+**シナリオ**: 既にインタビュー済みの状態での再実行
 
 **手順**:
-1. `requirements.md` に十分なプロジェクト説明があることを確認
-2. `spec.json` の phase が `"requirements-approved"` 以降であることを確認
-3. `spec.json` に `interview.requirements: true` がないことを確認
-4. `/kiro:spec-requirements <feature>` を実行
+1. `interview.md` が存在することを確認
+2. `spec.json` に `interview.requirements: true` がないことを確認
+3. `/kiro:spec-requirements <feature>` を実行
 
 **期待結果**:
-- プリフライトインタビューは**実行されない**
+- プリフライトインタビューは**実行されない**（`interview.md`が存在するため）
 - コマンドは高速に維持される
 
-### Test 3: AskUserQuestionTool 失敗
+### Test 3: 明示フラグによる再インタビュー
+
+**シナリオ**: 明示的にインタビューを再実行したい場合
+
+**手順**:
+1. `spec.json` に `"interview": { "requirements": true }` を設定
+2. `/kiro:spec-requirements <feature>` を実行
+
+**期待結果**:
+- `interview.md` が存在していてもプリフライトインタビューが**実行される**
+- `interview.md` が更新される
+
+### Test 4: AskUserQuestionTool 失敗
 
 **シナリオ**: AskUserQuestionTool が利用不可または失敗
 

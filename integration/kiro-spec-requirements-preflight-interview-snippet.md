@@ -33,11 +33,12 @@
 
 +2.5 **Optional Preflight Interview (timeboxed, Japanese)**:
 +   - Purpose: clarify only high-risk unknowns WITHOUT slowing down generation.
-+   - Trigger ONLY if any of the following is true:
-+     - `.kiro/specs/$1/spec.json` phase is `"initialized"` (first run), OR
-+     - `.kiro/specs/$1/spec.json` approvals.requirements.approved is `false`, OR
-+     - `.kiro/specs/$1/requirements.md` project description is missing/thin, OR
-+     - `.kiro/specs/$1/spec.json` contains `interview.requirements: true`
++   - Trigger logic (in order):
++     1. IF `.kiro/specs/$1/spec.json` contains `interview.requirements: true` → ALWAYS RUN
++     2. ELSE IF `.kiro/specs/$1/interview.md` exists → SKIP (already interviewed)
++     3. ELSE IF phase is `"initialized"` OR approvals.requirements.approved is `false` → RUN
++     4. ELSE IF `.kiro/specs/$1/requirements.md` project description is missing/thin → RUN
++   - Key: Skip interview if interview.md exists (unless explicit flag is set)
 +   - Use AskUserQuestionTool in Japanese. Keep the requirements output language unchanged (still follow spec.json).
 +   - Hard limits:
 +     - Max 8 questions total (single round).
@@ -96,13 +97,15 @@
 
 ## Triggers Summary
 
-| Condition | Check Method | Action |
-|-----------|--------------|--------|
-| First run | `spec.json` phase == `"initialized"` | Run interview |
-| Requirements not approved | `approvals.requirements.approved` == `false` | Run interview |
-| Missing description | `requirements.md` project description missing/thin | Run interview |
-| Explicit flag | `spec.json` contains `interview.requirements: true` | Run interview |
-| None of above | - | Skip interview |
+| Priority | Condition | Check Method | Action |
+|----------|-----------|--------------|--------|
+| 1 | Explicit flag | `spec.json` contains `interview.requirements: true` | **Always run** |
+| 2 | Already interviewed | `interview.md` exists | **Skip** |
+| 3 | First run | phase == `"initialized"` OR `approvals.requirements.approved` == `false` | Run |
+| 4 | Missing description | `requirements.md` project description missing/thin | Run |
+| - | None of above | - | Skip |
+
+**Key**: `interview.md` の存在チェックにより、承認前の再実行でも不要なインタビューを回避。
 
 ---
 

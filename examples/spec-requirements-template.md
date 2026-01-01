@@ -44,12 +44,14 @@ EARS (Easy Approach to Requirements Syntax) 形式で要件を生成するコマ
 
 #### Trigger Conditions
 
-以下のいずれかが真の場合のみ実行:
+以下の順序で判定:
 
-1. `.kiro/specs/$1/spec.json` の `phase` が `"initialized"` （初回実行）
-2. `.kiro/specs/$1/spec.json` の `approvals.requirements.approved` が `false` （要件未承認）
-3. `.kiro/specs/$1/requirements.md` のプロジェクト説明が欠落または不十分
-4. `.kiro/specs/$1/spec.json` に `"interview": { "requirements": true }` が含まれる
+1. **明示フラグ**: `.kiro/specs/$1/spec.json` に `"interview": { "requirements": true }` が含まれる → **常に実行**
+2. **interview.md存在チェック**: `.kiro/specs/$1/interview.md` が存在する → **スキップ**（既にインタビュー済み）
+3. **初回実行**: `phase` が `"initialized"` または `approvals.requirements.approved` が `false` → **実行**
+4. **コンテキスト不足**: `.kiro/specs/$1/requirements.md` のプロジェクト説明が欠落/不十分 → **実行**
+
+**ポイント**: `interview.md` が存在する場合、明示フラグがない限りインタビューをスキップ。これにより、承認前の再実行でも速度を維持。
 
 #### Hard Limits
 
