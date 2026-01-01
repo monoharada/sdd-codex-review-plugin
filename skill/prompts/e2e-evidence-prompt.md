@@ -62,11 +62,16 @@ FOR each scenario in E2E_SCENARIOS:
 ### 3. スクリーンショット命名規則
 
 ```
-step-01-initial-state.png      # 初期表示
-step-02-{action-name}.png      # アクション後
-step-03-{action-name}.png      # アクション後
-step-NN-complete.png           # 最終状態
+step-NN-description.png
+
+例:
+step-01-initial.png            # 初期表示
+step-02-action.png             # アクション後
+step-03-validation.png         # バリデーション表示
+step-04-complete.png           # 最終状態
 ```
+
+**注意**: 命名は `step-NN-description.png` 形式に統一。description は英小文字とハイフンのみ使用。
 
 ### 4. 結果報告
 

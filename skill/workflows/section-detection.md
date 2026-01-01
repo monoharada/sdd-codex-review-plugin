@@ -132,10 +132,26 @@ E2Eシナリオの集約:
 
 ## 完了判定アルゴリズム
 
-### isSectionComplete(sectionId)
+### 推奨: タスク完了フラグ方式
+
+**重要**: 同一ファイルを複数セクションで `**Modifies:**` 指定する場合、git diff方式では誤判定が発生します。
+タスク完了フラグを使用することで、セクション単位の正確な完了判定が可能になります。
 
 ```
 FUNCTION isSectionComplete(sectionId):
+    section = getSectionById(sectionId)
+
+    // 方式1: タスク完了フラグ（推奨）
+    IF section.tasks_completed EXISTS:
+        FOR each taskId in section.tasks:
+            IF NOT section.tasks_completed[taskId]:
+                RETURN false
+        RETURN true
+
+    // 方式2: ファイル存在チェック（フォールバック）
+    RETURN isSectionCompleteByFiles(sectionId)
+
+FUNCTION isSectionCompleteByFiles(sectionId):
     section = getSectionById(sectionId)
 
     // 1. Creates ファイル: 存在確認
@@ -143,50 +159,38 @@ FUNCTION isSectionComplete(sectionId):
         IF NOT fileExists(file):
             RETURN false
 
-    // 2. Modifies ファイル: ベースブランチからの差分で実変更を確認
+    // 2. Modifies ファイル: 変更検出（コミット済み + 未コミット）
     FOR each file in section.modifies_files:
         IF NOT fileExists(file):
             RETURN false
-        IF NOT hasChangesFromBaseBranch(file):
-            // ベースブランチからの変更がない = まだ実装されていない
+        IF NOT hasFileChanges(file):
             RETURN false
 
     RETURN true
 
-FUNCTION hasChangesFromBaseBranch(file, baseBranch = "main"):
-    // ベースブランチからの差分でファイルに変更があるか確認
-    // コミット済みの変更も検出するため、HEAD比較ではなくベースブランチ比較を使用
-    result = exec("git diff " + baseBranch + "..HEAD -- " + file)
-    RETURN result.length > 0
+FUNCTION hasFileChanges(file, baseBranch = "main"):
+    // コミット済み変更 OR 未コミット変更 を検出
+    committed = exec("git diff " + baseBranch + "..HEAD -- " + file)
+    uncommitted = exec("git diff HEAD -- " + file)
+    RETURN committed.length > 0 OR uncommitted.length > 0
 ```
 
-### 重要: Creates vs Modifies の区別
-
-| タイプ | 完了条件 | 理由 |
-|--------|----------|------|
-| `**Creates:**` | ファイル存在 | 新規ファイルなので存在=実装完了 |
-| `**Modifies:**` | ファイル存在 + ベースブランチからの差分あり | 既存ファイルなので変更検知が必要 |
-
-### ベースブランチ差分の理由
-
-`git diff main..HEAD` を使用する理由：
-
-1. **コミット済み変更の検出**: `git diff HEAD` はuncommittedな変更のみ検出するが、`main..HEAD` はブランチ作成後の全コミットを含む
-2. **レビュー単位との整合性**: 実装レビューはブランチ単位で行うため、ベースブランチからの全変更を対象とするのが自然
-3. **シンプルさ**: 直近レビューコミットを追跡するより、ベースブランチを基準とする方が実装が単純
-
-### 代替案: タスク完了フラグ併用
-
-git diff に依存しない場合は、spec.json にタスク完了フラグを追加：
+### タスク完了フラグのスキーマ
 
 ```json
 {
   "section_tracking": {
     "sections": {
-      "section-1": {
+      "section-1-core-foundation": {
         "tasks_completed": {
           "1.1": true,
-          "1.2": false
+          "1.2": true
+        }
+      },
+      "section-2-feature-impl": {
+        "tasks_completed": {
+          "2.1": true,
+          "2.2": false
         }
       }
     }
@@ -194,7 +198,39 @@ git diff に依存しない場合は、spec.json にタスク完了フラグを�
 }
 ```
 
-この場合、実装コマンド（`/kiro:spec-impl`）がタスク完了時にフラグを更新する。
+### タスク完了フラグの更新タイミング
+
+実装コマンド（`/kiro:spec-impl`）がタスク完了時にフラグを更新：
+
+```javascript
+// タスク実装完了時
+spec.section_tracking.sections[sectionId].tasks_completed[taskId] = true;
+spec.updated_at = new Date().toISOString();
+```
+
+### 重要: Creates vs Modifies の区別
+
+| タイプ | 完了条件（フラグ方式） | 完了条件（ファイル方式） |
+|--------|----------------------|------------------------|
+| `**Creates:**` | タスク完了フラグ = true | ファイル存在 |
+| `**Modifies:**` | タスク完了フラグ = true | ファイル存在 + 変更あり |
+
+### なぜタスク完了フラグが推奨か
+
+1. **セクション単位の正確な判定**: 同一ファイルが複数セクションで変更されても、各セクションの完了を正確に追跡
+2. **未コミット変更の対応**: git diff に依存しないため、コミット前でも完了判定可能
+3. **明示的な完了宣言**: 実装者が意図的に「完了」をマークするため、誤判定リスクが低い
+
+### フォールバック: ファイル方式の注意点
+
+タスク完了フラグがない場合のファイル方式には以下の制限があります：
+
+| 制限 | 説明 |
+|------|------|
+| 同一ファイル複数セクション | 前セクションの変更が後セクションの完了を誤判定させる |
+| 未コミット変更 | `git diff HEAD --` で検出するが、コミット済みとの併用が必要 |
+
+**推奨**: 新規プロジェクトではタスク完了フラグ方式を使用してください。
 
 ### shouldTriggerReview(sectionId)
 
@@ -241,6 +277,10 @@ FUNCTION shouldTriggerReview(sectionId):
       "name": "Section 1: Core Foundation",
       "line_range": [1, 25],
       "tasks": ["1.1", "1.2"],
+      "tasks_completed": {
+        "1.1": true,
+        "1.2": true
+      },
       "creates_files": [
         "src/types/base.ts",
         "src/utils/helpers.ts"
@@ -259,6 +299,10 @@ FUNCTION shouldTriggerReview(sectionId):
       "name": "Section 2: Feature Implementation [E2E]",
       "line_range": [26, 50],
       "tasks": ["2.1", "2.2"],
+      "tasks_completed": {
+        "2.1": true,
+        "2.2": false
+      },
       "creates_files": [
         "src/components/Main.tsx",
         "src/components/Main.test.tsx",

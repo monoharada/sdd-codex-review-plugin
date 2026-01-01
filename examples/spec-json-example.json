@@ -29,6 +29,10 @@
       "section-1-core-foundation": {
         "name": "Section 1: Core Foundation",
         "tasks": ["1.1", "1.2"],
+        "tasks_completed": {
+          "1.1": true,
+          "1.2": true
+        },
         "creates_files": [
           "src/types/base.ts",
           "src/utils/helpers.ts",
@@ -45,6 +49,10 @@
       "section-2-feature-impl": {
         "name": "Section 2: Feature Implementation [E2E]",
         "tasks": ["2.1", "2.2"],
+        "tasks_completed": {
+          "2.1": true,
+          "2.2": true
+        },
         "creates_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"

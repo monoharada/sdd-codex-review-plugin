@@ -333,8 +333,8 @@ E2Eエビデンス収集失敗 ≠ レビューブロック
 
 ### 収集ファイル
 スクリーンショット:
-  - `.context/e2e-evidence/user-dashboard/section-2-user-dashboard/step-01-initial-state.png`
-  - `.context/e2e-evidence/user-dashboard/section-2-user-dashboard/step-02-user-action.png`
+  - `.context/e2e-evidence/user-dashboard/section-2-user-dashboard/step-01-initial.png`
+  - `.context/e2e-evidence/user-dashboard/section-2-user-dashboard/step-02-action.png`
   - `.context/e2e-evidence/user-dashboard/section-2-user-dashboard/step-03-complete.png`
 
 エビデンスを確認してください。
@@ -369,8 +369,8 @@ section.e2e_evidence = {
   status: "passed",
   video_path: null,  // Playwright MCPでは録画非対応
   screenshots: [
-    ".context/e2e-evidence/[feature]/[section]/step-01-initial-state.png",
-    ".context/e2e-evidence/[feature]/[section]/step-02-user-action.png"
+    ".context/e2e-evidence/[feature]/[section]/step-01-initial.png",
+    ".context/e2e-evidence/[feature]/[section]/step-02-action.png"
   ],
   executed_at: new Date().toISOString(),
   error_message: null

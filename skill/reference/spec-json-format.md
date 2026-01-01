@@ -139,6 +139,10 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
       "section-1-core-foundation": {
         "name": "Section 1: Core Foundation",
         "tasks": ["1.1", "1.2"],
+        "tasks_completed": {
+          "1.1": true,
+          "1.2": true
+        },
         "creates_files": [
           "src/types/base.ts",
           "src/utils/helpers.ts"
@@ -153,6 +157,10 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
       "section-2-feature-impl": {
         "name": "Section 2: Feature Implementation",
         "tasks": ["2.1", "2.2"],
+        "tasks_completed": {
+          "2.1": true,
+          "2.2": false
+        },
         "creates_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
@@ -184,8 +192,9 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
 |-----------|-----|------|
 | `name` | string | セクション表示名 |
 | `tasks` | string[] | セクション内のタスクID配列 |
+| `tasks_completed` | object | タスク完了フラグ（**推奨**）: `{"1.1": true, "1.2": false}` |
 | `creates_files` | string[] | `**Creates:**` で指定されたファイル（存在確認のみ） |
-| `modifies_files` | string[] | `**Modifies:**` で指定されたファイル（ベースブランチ差分確認） |
+| `modifies_files` | string[] | `**Modifies:**` で指定されたファイル |
 | `status` | string | `"pending"` / `"in_progress"` / `"complete"` |
 | `reviewed` | boolean | Codexレビュー済みか |
 | `review_session_id` | string / null | Codex Session ID |
@@ -195,9 +204,38 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
 
 ### 後方互換性
 
+#### 基本ルール
+
 - `section_tracking`フィールドが存在しない場合: 従来動作（タスクごとのレビュー）
 - tasks.mdに`##`見出しがない場合: 全体を単一セクションとして扱う
 - `e2e_required`フィールドが存在しない場合: E2Eエビデンス収集はスキップ
+
+#### expected_files から creates_files/modifies_files への移行
+
+旧スキーマ（`expected_files`）から新スキーマへの移行ルール：
+
+| 状況 | 処理 |
+|------|------|
+| `expected_files` のみ存在 | `creates_files = expected_files`, `modifies_files = []` として扱う |
+| `creates_files`/`modifies_files` 存在 | 新スキーマを優先（`expected_files` は無視） |
+| 両方存在 | 新スキーマ（`creates_files`/`modifies_files`）を使用 |
+
+```javascript
+// 読み取り時の変換ロジック
+function normalizeSection(section) {
+  if (section.creates_files === undefined && section.expected_files) {
+    // 旧スキーマ → 新スキーマ変換
+    section.creates_files = section.expected_files;
+    section.modifies_files = [];
+  }
+  return section;
+}
+```
+
+#### tasks_completed フラグの後方互換性
+
+- `tasks_completed` が存在しない場合: ファイル存在チェック方式にフォールバック
+- `tasks_completed` が存在する場合: フラグ方式を優先（より正確な判定）
 
 ---
 
@@ -343,6 +381,10 @@ E2Eはエビデンス目的であり、品質ゲートではありません。
       "section-1-core-foundation": {
         "name": "Section 1: Core Foundation",
         "tasks": ["1.1", "1.2"],
+        "tasks_completed": {
+          "1.1": true,
+          "1.2": true
+        },
         "creates_files": [
           "src/types/base.ts",
           "src/utils/helpers.ts"
@@ -358,6 +400,10 @@ E2Eはエビデンス目的であり、品質ゲートではありません。
       "section-2-feature-impl": {
         "name": "Section 2: Feature Implementation [E2E]",
         "tasks": ["2.1", "2.2"],
+        "tasks_completed": {
+          "2.1": true,
+          "2.2": false
+        },
         "creates_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
