@@ -225,7 +225,7 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
 {
   "e2e_evidence": {
     "status": "passed",
-    "video_path": ".context/e2e-evidence/my-feature/section-2-ui/recording.webm",
+    "video_path": null,
     "screenshots": [
       ".context/e2e-evidence/my-feature/section-2-ui/step-01-initial.png",
       ".context/e2e-evidence/my-feature/section-2-ui/step-02-action.png",
@@ -242,10 +242,13 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
 | フィールド | 型 | 説明 |
 |-----------|-----|------|
 | `status` | string | `"pending"` / `"passed"` / `"failed"` |
-| `video_path` | string / null | 録画ファイルパス |
-| `screenshots` | string[] | スクリーンショットファイルパス配列 |
+| `video_path` | string / null | 録画ファイルパス（**オプション**: Playwright MCPでは通常null） |
+| `screenshots` | string[] | スクリーンショットファイルパス配列（**必須**） |
 | `executed_at` | string / null | 実行日時（ISO8601形式） |
 | `error_message` | string / null | エラー発生時のメッセージ |
+
+**注意**: Playwright MCP は録画機能を直接提供しないため、`video_path` は通常 `null` です。
+スクリーンショットのみでエビデンスとして有効です。外部録画ツール使用時のみ `video_path` を設定してください。
 
 ### E2E失敗時の例
 

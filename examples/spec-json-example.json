@@ -55,7 +55,7 @@
         ],
         "e2e_evidence": {
           "status": "passed",
-          "video_path": ".context/e2e-evidence/example-feature/section-2-feature-impl/recording.webm",
+          "video_path": null,
           "screenshots": [
             ".context/e2e-evidence/example-feature/section-2-feature-impl/step-01-initial.png",
             ".context/e2e-evidence/example-feature/section-2-feature-impl/step-02-action.png",

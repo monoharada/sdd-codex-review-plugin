@@ -137,14 +137,55 @@ E2Eシナリオの集約:
 ```
 FUNCTION isSectionComplete(sectionId):
     section = getSectionById(sectionId)
-    expectedFiles = section.expected_files
 
-    FOR each file in expectedFiles:
+    // 1. Creates ファイル: 存在確認
+    FOR each file in section.creates_files:
         IF NOT fileExists(file):
             RETURN false
 
+    // 2. Modifies ファイル: git diff で実変更を確認
+    FOR each file in section.modifies_files:
+        IF NOT fileExists(file):
+            RETURN false
+        IF NOT hasUncommittedChanges(file):
+            // 変更がない = まだ実装されていない
+            RETURN false
+
     RETURN true
+
+FUNCTION hasUncommittedChanges(file):
+    // git diff でファイルに変更があるか確認
+    result = exec("git diff HEAD -- " + file)
+    RETURN result.length > 0
 ```
+
+### 重要: Creates vs Modifies の区別
+
+| タイプ | 完了条件 | 理由 |
+|--------|----------|------|
+| `**Creates:**` | ファイル存在 | 新規ファイルなので存在=実装完了 |
+| `**Modifies:**` | ファイル存在 + git diff あり | 既存ファイルなので変更検知が必要 |
+
+### 代替案: タスク完了フラグ併用
+
+git diff に依存しない場合は、spec.json にタスク完了フラグを追加：
+
+```json
+{
+  "section_tracking": {
+    "sections": {
+      "section-1": {
+        "tasks_completed": {
+          "1.1": true,
+          "1.2": false
+        }
+      }
+    }
+  }
+}
+```
+
+この場合、実装コマンド（`/kiro:spec-impl`）がタスク完了時にフラグを更新する。
 
 ### shouldTriggerReview(sectionId)
 
@@ -165,7 +206,21 @@ FUNCTION shouldTriggerReview(sectionId):
 
 ## 状態管理
 
-セクション完了状態は `.context/section-completion-state.json` で管理：
+### 正本（Source of Truth）: spec.json
+
+**重要**: セクション状態の正本は `spec.json` の `section_tracking` フィールドです。
+
+| ファイル | 役割 | 更新タイミング |
+|----------|------|---------------|
+| `spec.json.section_tracking` | **正本** - レビュー状態、完了状態 | レビュー完了時、E2E完了時 |
+| `.context/section-completion-state.json` | **キャッシュ** - tasks.md解析結果 | tasks.md変更検知時に再生成 |
+
+### キャッシュファイル
+
+`.context/section-completion-state.json` は tasks.md の解析結果をキャッシュするためのもので、
+`spec.json` と矛盾する場合は **spec.json が優先** されます。
+
+キャッシュ内容（tasks.md 解析結果のみ）：
 
 ```json
 {

@@ -152,19 +152,26 @@ E2Eエビデンス収集は**Codexレビューで APPROVED を取得した後**�
 └── e2e-evidence/
     └── [feature-name]/
         └── [section-id]/
-            ├── recording.webm              # 画面録画（メイン）
-            ├── step-01-initial-state.png   # 初期状態
-            ├── step-02-user-action.png     # ユーザー操作後
+            ├── recording.webm              # 画面録画（オプション）
+            ├── step-01-initial.png         # 初期状態
+            ├── step-02-action.png          # ユーザー操作後
             ├── step-03-validation.png      # バリデーション表示
             └── step-04-complete.png        # 完了状態
 ```
 
 ### 命名規則
 
-| ファイル種別 | 命名パターン | 説明 |
-|-------------|-------------|------|
-| 録画 | `recording.webm` | セクション全体の録画 |
-| スクリーンショット | `step-NN-description.png` | 各ステップの状態 |
+| ファイル種別 | 命名パターン | 必須/任意 | 説明 |
+|-------------|-------------|----------|------|
+| 録画 | `recording.webm` | **任意** | セクション全体の録画（外部ツール使用時） |
+| スクリーンショット | `step-NN-description.png` | **必須** | 各ステップの状態 |
+
+### 重要: 録画はオプション
+
+Playwright MCP は直接的な録画機能を提供しないため、`video_path` は **null 許容** です。
+スクリーンショットのみでエビデンスとして有効です。
+
+録画が必要な場合は、OS標準の画面録画ツールを別途使用してください。
 
 ### .gitignore設定
 
