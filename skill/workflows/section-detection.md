@@ -299,8 +299,8 @@ Playwright MCPでの実行が失敗した場合：
 FUNCTION shouldTriggerE2EEvidence(sectionId):
     section = getSectionById(sectionId)
 
-    // セクションが完了していること
-    IF NOT isSectionComplete(sectionId):
+    // Codexレビューで承認されていること（最重要）
+    IF NOT sectionReviewApproved(sectionId):
         RETURN false
 
     // E2Eが必要なセクションであること
@@ -314,12 +314,18 @@ FUNCTION shouldTriggerE2EEvidence(sectionId):
     RETURN true
 ```
 
-### 実行フロー
+### 実行フロー（レビュー後にE2E）
 
 ```
 セクション完了
     ↓
+Codexレビュー実行
+    ↓
+APPROVED ?
+    ├── NO → 修正 → 再レビュー
+    ↓ YES
 shouldTriggerE2EEvidence(sectionId) = true?
+    ├── NO → セクション完了、次へ進行
     ↓ YES
 E2Eエビデンス収集（Playwright MCP）
     ↓
@@ -327,10 +333,14 @@ E2Eエビデンス収集（Playwright MCP）
     ↓
 動画ファイルを自動オープン
     ↓
-shouldTriggerReview(sectionId) = true?
-    ↓ YES
-Codexレビュー実行
+セクション完了、次へ進行
 ```
+
+### なぜレビュー後にE2Eを実行するのか
+
+1. **品質優先**: レビュー済みの承認されたコードでエビデンスを取得
+2. **効率性**: レビューで修正が入る可能性があるため、レビュー前のE2Eは無駄
+3. **エビデンス目的**: 最終的な品質保証済みコードの動作を記録
 
 ### エビデンス保存先
 

@@ -59,16 +59,18 @@ Kiroコマンド定義ファイル（例: `.claude/commands/kiro/spec-impl.md`�
 
 ```
 IF section_complete AND NOT section_reviewed:
-    // E2Eエビデンス収集（[E2E]タグ付きセクションのみ）
+    // Codexレビュー実行（まずレビューを行う）
+    Skill tool invoke: "sdd-codex-review"
+    args: impl-section $feature $section_id
+    APPROVED が返されるまでループ
+
+    // E2Eエビデンス収集（レビュー承認後、[E2E]タグ付きセクションのみ）
     IF section.e2e_required AND section.e2e_evidence.status == "pending":
         Playwright MCPでE2Eエビデンス収集
         結果を .context/e2e-evidence/ に保存
         ユーザーにスクリーンショットパスを報告
+        E2E失敗でも次へ続行
 
-    // Codexレビュー実行
-    Skill tool invoke: "sdd-codex-review"
-    args: impl-section $feature $section_id
-    APPROVED が返されるまでループ
 ELSE:
     次のタスクへ続行（レビューはスキップ）
 ```
@@ -78,16 +80,17 @@ ELSE:
 1. タスク実装が完了
 2. セクション完了をチェック（全期待ファイル存在確認）
 3. セクション完了 AND 未レビュー の場合：
-   a. **E2Eエビデンス収集**（`[E2E]`タグ付きセクションのみ）：
-      - Playwright MCPでスクリーンショット収集
-      - `.context/e2e-evidence/`に保存
-      - ユーザーにパスを報告
-      - E2E失敗でも次のステップへ続行
-   b. **Codexレビュー実行**：
+   a. **Codexレビュー実行**：
       - Codex CLI を使用してセクションレビューを実行
       - レビュー結果を解析
       - NEEDS_REVISION の場合は修正を適用して再レビュー
-      - APPROVED になったら次のセクション/タスクへ
+      - APPROVED になるまでループ
+   b. **E2Eエビデンス収集**（APPROVED後、`[E2E]`タグ付きセクションのみ）：
+      - Playwright MCPでスクリーンショット収集
+      - `.context/e2e-evidence/`に保存
+      - ユーザーにパスを報告
+      - E2E失敗でもセクション完了として扱う
+   c. 次のセクション/タスクへ進む
 4. セクション未完了の場合：
    - レビューをスキップして次のタスクへ
 
@@ -156,8 +159,9 @@ ELSE:
 ### 条件
 
 - セクション完了時のみレビュー実行
-- `[E2E]`タグ付きセクションではE2Eエビデンスを先に収集
-- E2E失敗でもレビューは続行（ブロッキングではない）
+- Codexレビューを先に実行、APPROVED後にE2Eエビデンス収集
+- `[E2E]`タグ付きセクションでのみE2Eエビデンスを収集
+- E2E失敗でもセクション完了として扱う（ブロッキングではない）
 - APPROVED が返されるまで修正・再レビューをループ
 - 最大6回のリトライ
 - 6回超過時はユーザー介入を要求
