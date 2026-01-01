@@ -24,11 +24,19 @@
 
 [タスク詳細...]
 
-## Section 2: Feature Implementation
+## Section 2: Feature Implementation [E2E]
 
 ### Task 2.1: Build main component
 **Creates:** `src/components/Main.tsx`, `src/components/Main.test.tsx`
 **Implements:** REQ-2.1, REQ-2.2
+**E2E:** コンポーネントの初期表示確認、ユーザー操作テスト
+
+[タスク詳細...]
+
+### Task 2.2: Add user interaction
+**Creates:** `src/components/UserForm.tsx`
+**Implements:** REQ-2.3
+**E2E:** フォーム入力、バリデーション表示、送信確認
 
 [タスク詳細...]
 ```
@@ -38,10 +46,12 @@
 | 要素 | パターン | 説明 |
 |------|---------|------|
 | セクション見出し | `## Section X: Name` | セクション境界を定義 |
+| E2Eセクション | `## Section X: Name [E2E]` | E2Eエビデンス収集が必要なセクション |
 | タスク見出し | `### Task X.Y: Title` | セクション内のタスク |
 | 作成ファイル | `**Creates:** \`path\`` | タスクが作成するファイル |
 | 変更ファイル | `**Modifies:** \`path\`` | タスクが変更するファイル |
 | 要件トレース | `**Implements:** REQ-X.X` | 対応する要件ID |
+| E2Eシナリオ | `**E2E:** シナリオ説明` | そのタスクのE2E検証シナリオ |
 
 ---
 
@@ -78,6 +88,26 @@ FOR each task:
     正規表現例:
     Creates: /\*\*Creates:\*\*\s*(.+)$/
     ファイル抽出: /`([^`]+)`/g
+```
+
+### Step 4: E2Eタグの検出
+
+```
+FOR each section:
+    1. セクション見出しに `[E2E]` サフィックスがあるか確認
+    2. 正規表現: /\[E2E\]\s*$/
+    3. マッチした場合: section.e2e_required = true
+    4. セクション内の各タスクから `**E2E:**` を抽出
+
+E2E検出の正規表現:
+    セクションタグ: /^##\s+.+\s*\[E2E\]\s*$/
+    タスクシナリオ: /\*\*E2E:\*\*\s*(.+)$/
+
+E2Eシナリオの集約:
+    section.e2e_scenarios = [
+        { task: "2.1", scenario: "コンポーネントの初期表示確認、ユーザー操作テスト" },
+        { task: "2.2", scenario: "フォーム入力、バリデーション表示、送信確認" }
+    ]
 ```
 
 ---
@@ -151,19 +181,34 @@ FUNCTION shouldTriggerReview(sectionId):
         "src/types/base.ts",
         "src/utils/helpers.ts"
       ],
+      "e2e_required": false,
+      "e2e_scenarios": [],
       "status": "complete",
       "completed_at": "2025-12-30T12:00:00Z",
       "reviewed": true,
       "review_session_id": "codex-xyz"
     },
     "section-2-feature-impl": {
-      "name": "Section 2: Feature Implementation",
+      "name": "Section 2: Feature Implementation [E2E]",
       "line_range": [26, 50],
-      "tasks": ["2.1"],
+      "tasks": ["2.1", "2.2"],
       "expected_files": [
         "src/components/Main.tsx",
-        "src/components/Main.test.tsx"
+        "src/components/Main.test.tsx",
+        "src/components/UserForm.tsx"
       ],
+      "e2e_required": true,
+      "e2e_scenarios": [
+        { "task": "2.1", "scenario": "コンポーネントの初期表示確認、ユーザー操作テスト" },
+        { "task": "2.2", "scenario": "フォーム入力、バリデーション表示、送信確認" }
+      ],
+      "e2e_evidence": {
+        "status": "pending",
+        "video_path": null,
+        "screenshots": [],
+        "executed_at": null,
+        "error_message": null
+      },
       "status": "in_progress",
       "completed_at": null,
       "reviewed": false,
@@ -220,6 +265,83 @@ tasks.mdに `##` 見出しがない場合：
 
 ```markdown
 **Creates:** `src/a.ts`, `src/b.ts`, `src/c.ts`
+```
+
+### E2Eタグがあるがシナリオがない場合
+
+セクションに `[E2E]` タグがあるが、タスクに `**E2E:**` がない場合：
+
+```
+1. 警告ログを出力
+2. e2e_required = true のまま維持
+3. e2e_scenarios = [] (空配列)
+4. E2Eエビデンス収集時に汎用シナリオを使用
+```
+
+### E2Eエビデンス収集失敗時
+
+Playwright MCPでの実行が失敗した場合：
+
+```
+1. e2e_evidence.status = "failed"
+2. e2e_evidence.error_message にエラー内容を記録
+3. 警告をユーザーに通知
+4. Codexレビューは続行（E2E失敗でブロックしない）
+```
+
+---
+
+## E2Eエビデンスワークフロー
+
+### トリガー条件
+
+```
+FUNCTION shouldTriggerE2EEvidence(sectionId):
+    section = getSectionById(sectionId)
+
+    // セクションが完了していること
+    IF NOT isSectionComplete(sectionId):
+        RETURN false
+
+    // E2Eが必要なセクションであること
+    IF NOT section.e2e_required:
+        RETURN false
+
+    // まだE2Eエビデンスが収集されていないこと
+    IF section.e2e_evidence.status != "pending":
+        RETURN false
+
+    RETURN true
+```
+
+### 実行フロー
+
+```
+セクション完了
+    ↓
+shouldTriggerE2EEvidence(sectionId) = true?
+    ↓ YES
+E2Eエビデンス収集（Playwright MCP）
+    ↓
+結果を e2e_evidence に保存
+    ↓
+動画ファイルを自動オープン
+    ↓
+shouldTriggerReview(sectionId) = true?
+    ↓ YES
+Codexレビュー実行
+```
+
+### エビデンス保存先
+
+```
+.context/e2e-evidence/
+└── [feature-name]/
+    └── [section-id]/
+        ├── recording.webm          # 画面録画
+        ├── step-01-initial.png     # 初期状態
+        ├── step-02-action.png      # 操作後
+        └── step-03-complete.png    # 完了状態
 ```
 
 ---

@@ -34,17 +34,36 @@
           "src/utils/helpers.ts",
           "src/utils/helpers.test.ts"
         ],
+        "e2e_required": false,
+        "e2e_scenarios": [],
+        "e2e_evidence": null,
         "status": "complete",
         "reviewed": true,
         "review_session_id": "codex-section1-abc123"
       },
       "section-2-feature-impl": {
-        "name": "Section 2: Feature Implementation",
+        "name": "Section 2: Feature Implementation [E2E]",
         "tasks": ["2.1", "2.2"],
         "expected_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
         ],
+        "e2e_required": true,
+        "e2e_scenarios": [
+          { "task": "2.1", "scenario": "コンポーネント初期表示、ユーザー操作確認" },
+          { "task": "2.2", "scenario": "フォーム入力、バリデーション表示" }
+        ],
+        "e2e_evidence": {
+          "status": "passed",
+          "video_path": ".context/e2e-evidence/example-feature/section-2-feature-impl/recording.webm",
+          "screenshots": [
+            ".context/e2e-evidence/example-feature/section-2-feature-impl/step-01-initial.png",
+            ".context/e2e-evidence/example-feature/section-2-feature-impl/step-02-action.png",
+            ".context/e2e-evidence/example-feature/section-2-feature-impl/step-03-complete.png"
+          ],
+          "executed_at": "2025-12-29T15:00:00.000Z",
+          "error_message": null
+        },
         "status": "complete",
         "reviewed": true,
         "review_session_id": "codex-section2-def456"

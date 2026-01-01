@@ -20,6 +20,9 @@
 # 実装フェーズ：セクション完了時のみレビュー（タスクごとではない）
 /sdd-codex-review impl-section [feature] [section-id]  # セクション完了時
 /sdd-codex-review impl-pending [feature]               # 完了済み未レビューセクションを一括
+
+# E2Eエビデンス収集（[E2E]タグ付きセクションで自動実行）
+/sdd-codex-review e2e-evidence [feature] [section-id]  # 手動実行用
 ```
 
 #### ワークフロー
@@ -41,6 +44,26 @@
 4. 完了 AND 未レビュー → Codexレビュー実行
 
 これにより、レビューオーバーヘッドを削減しつつ、セクション間の整合性を確保。
+
+#### E2Eエビデンス収集
+
+`[E2E]` タグ付きセクションでは、Playwright MCPを使用してE2Eエビデンスを自動収集：
+
+```markdown
+## Section 2: User Dashboard [E2E]    ← [E2E]タグでE2E必要を示す
+
+### Task 2.1: Build dashboard
+**Creates:** `src/Dashboard.tsx`
+**E2E:** ダッシュボード初期表示確認    ← 各タスクのE2Eシナリオ
+```
+
+フロー:
+1. セクション完了 + `[E2E]`タグ検出
+2. Playwright MCPでスクリーンショット収集
+3. `.context/e2e-evidence/`に保存
+4. Codexレビュー実行
+
+エビデンスは `.context/` に保存（gitignore推奨）。E2E失敗でもレビューは続行。
 ```
 
 ---

@@ -184,11 +184,87 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
 | `status` | string | `"pending"` / `"in_progress"` / `"complete"` |
 | `reviewed` | boolean | Codexレビュー済みか |
 | `review_session_id` | string / null | Codex Session ID |
+| `e2e_required` | boolean | E2Eエビデンス収集が必要か（`[E2E]`タグ検出時 true） |
+| `e2e_scenarios` | array | E2Eシナリオ一覧（`**E2E:**`から抽出） |
+| `e2e_evidence` | object / null | E2Eエビデンス収集結果 |
 
 ### 後方互換性
 
 - `section_tracking`フィールドが存在しない場合: 従来動作（タスクごとのレビュー）
 - tasks.mdに`##`見出しがない場合: 全体を単一セクションとして扱う
+- `e2e_required`フィールドが存在しない場合: E2Eエビデンス収集はスキップ
+
+---
+
+## E2Eエビデンス（e2e_evidence）
+
+### 概要
+
+`[E2E]` タグ付きセクションでは、Playwright MCP を使用してE2Eテストのエビデンス（画面録画・スクリーンショット）を収集します。
+
+### e2e_scenarios 構造
+
+```json
+{
+  "e2e_scenarios": [
+    {
+      "task": "2.1",
+      "scenario": "ログインフォーム表示、入力フィールド確認"
+    },
+    {
+      "task": "2.2",
+      "scenario": "バリデーションエラー表示、送信成功"
+    }
+  ]
+}
+```
+
+### e2e_evidence 構造
+
+```json
+{
+  "e2e_evidence": {
+    "status": "passed",
+    "video_path": ".context/e2e-evidence/my-feature/section-2-ui/recording.webm",
+    "screenshots": [
+      ".context/e2e-evidence/my-feature/section-2-ui/step-01-initial.png",
+      ".context/e2e-evidence/my-feature/section-2-ui/step-02-action.png",
+      ".context/e2e-evidence/my-feature/section-2-ui/step-03-complete.png"
+    ],
+    "executed_at": "2025-12-30T12:00:00.000Z",
+    "error_message": null
+  }
+}
+```
+
+### e2e_evidence フィールド説明
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `status` | string | `"pending"` / `"passed"` / `"failed"` |
+| `video_path` | string / null | 録画ファイルパス |
+| `screenshots` | string[] | スクリーンショットファイルパス配列 |
+| `executed_at` | string / null | 実行日時（ISO8601形式） |
+| `error_message` | string / null | エラー発生時のメッセージ |
+
+### E2E失敗時の例
+
+```json
+{
+  "e2e_evidence": {
+    "status": "failed",
+    "video_path": null,
+    "screenshots": [],
+    "executed_at": "2025-12-30T12:00:00.000Z",
+    "error_message": "Playwright MCP接続失敗: Connection refused"
+  }
+}
+```
+
+### 重要: E2E失敗はブロッキングではない
+
+E2Eエビデンス収集が失敗しても、Codexレビューは続行します。
+E2Eはエビデンス目的であり、品質ゲートではありません。
 
 ---
 
@@ -263,17 +339,32 @@ tasks.mdの`##`見出しで定義されたセクション単位で進捗を管�
           "src/types/base.ts",
           "src/utils/helpers.ts"
         ],
+        "e2e_required": false,
+        "e2e_scenarios": [],
+        "e2e_evidence": null,
         "status": "complete",
         "reviewed": true,
         "review_session_id": "codex-section1-001"
       },
       "section-2-feature-impl": {
-        "name": "Section 2: Feature Implementation",
+        "name": "Section 2: Feature Implementation [E2E]",
         "tasks": ["2.1", "2.2"],
         "expected_files": [
           "src/components/Main.tsx",
           "src/components/Main.test.tsx"
         ],
+        "e2e_required": true,
+        "e2e_scenarios": [
+          { "task": "2.1", "scenario": "コンポーネント初期表示、ユーザー操作確認" },
+          { "task": "2.2", "scenario": "フォーム入力、バリデーション表示" }
+        ],
+        "e2e_evidence": {
+          "status": "pending",
+          "video_path": null,
+          "screenshots": [],
+          "executed_at": null,
+          "error_message": null
+        },
         "status": "in_progress",
         "reviewed": false,
         "review_session_id": null
