@@ -47,14 +47,15 @@
 
 | # | 条件 | 説明 |
 |---|------|------|
-| 1 | `spec.json` phase != `"requirements-generated"` | 初回実行 |
-| 2 | `requirements.md` プロジェクト説明が欠落/不十分 | コンテキスト不足 |
-| 3 | `spec.json` に `interview.requirements: true` | 明示的なフラグ |
+| 1 | `spec.json` phase == `"initialized"` | 初回実行（要件未承認） |
+| 2 | `approvals.requirements.approved` == `false` | 要件が未承認 |
+| 3 | `requirements.md` プロジェクト説明が欠落/不十分 | コンテキスト不足 |
+| 4 | `spec.json` に `interview.requirements: true` | 明示的なフラグ |
 
 ### 条件判定ロジック
 
 ```
-IF phase != "requirements-generated" THEN
+IF phase == "initialized" OR approvals.requirements.approved == false THEN
   RUN preflight interview
 ELSE IF requirements.md project description is missing/thin THEN
   RUN preflight interview
@@ -218,12 +219,12 @@ END
 
 **手順**:
 1. `/kiro:spec-requirements <feature>` を実行
-2. `spec.json` の phase が `"requirements-generated"` でないことを確認
+2. `spec.json` の phase が `"initialized"` または `approvals.requirements.approved` が `false` であることを確認
 
 **期待結果**:
 - プリフライトインタビューが実行される（日本語、最大8問）
 - `requirements.md` が spec.json で指定された言語で生成される
-- メタデータ更新が行われる
+- メタデータ更新が行われる（phase: `"requirements-approved"` after Codex review）
 - `/sdd-codex-review requirements <feature>` が呼び出される
 
 ### Test 2: 十分な説明がある場合の再実行
@@ -232,7 +233,7 @@ END
 
 **手順**:
 1. `requirements.md` に十分なプロジェクト説明があることを確認
-2. `spec.json` の phase が `"requirements-generated"` であることを確認
+2. `spec.json` の phase が `"requirements-approved"` 以降であることを確認
 3. `spec.json` に `interview.requirements: true` がないことを確認
 4. `/kiro:spec-requirements <feature>` を実行
 

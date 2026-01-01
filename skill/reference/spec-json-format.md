@@ -15,6 +15,9 @@
     "tasks": { "approved": false }
   },
   "updated_at": "2025-12-25T12:00:00.000Z",
+  "interview": {
+    "requirements": false
+  },
   "codex_reviews": {
     "requirements": {
       "review_count": 2,
@@ -71,6 +74,22 @@ Codexレビューの履歴。
   }
 }
 ```
+
+### interview（オプション）
+
+プリフライトインタビューの設定。各フェーズでインタビューを強制実行するかを制御します。
+
+```json
+{
+  "interview": {
+    "requirements": boolean,  // true: 要件生成時にインタビューを強制実行
+    "design": boolean,        // true: 設計生成時にインタビューを強制実行（将来用）
+    "tasks": boolean          // true: タスク生成時にインタビューを強制実行（将来用）
+  }
+}
+```
+
+**使用例**: 既に `requirements-approved` 状態でも、明示的にインタビューを再実行したい場合に `interview.requirements: true` を設定。
 
 ---
 
@@ -130,6 +149,11 @@ spec.phase = "ready-for-implementation";
     "tasks": { "approved": true }
   },
   "updated_at": "2025-12-25T15:30:00.000Z",
+  "interview": {
+    "requirements": false,
+    "design": false,
+    "tasks": false
+  },
   "codex_reviews": {
     "requirements": {
       "review_count": 1,

@@ -46,9 +46,10 @@ EARS (Easy Approach to Requirements Syntax) 形式で要件を生成するコマ
 
 以下のいずれかが真の場合のみ実行:
 
-1. `.kiro/specs/$1/spec.json` の `phase` が `"requirements-generated"` でない（初回実行）
-2. `.kiro/specs/$1/requirements.md` のプロジェクト説明が欠落または不十分
-3. `.kiro/specs/$1/spec.json` に `"interview": { "requirements": true }` が含まれる
+1. `.kiro/specs/$1/spec.json` の `phase` が `"initialized"` （初回実行）
+2. `.kiro/specs/$1/spec.json` の `approvals.requirements.approved` が `false` （要件未承認）
+3. `.kiro/specs/$1/requirements.md` のプロジェクト説明が欠落または不十分
+4. `.kiro/specs/$1/spec.json` に `"interview": { "requirements": true }` が含まれる
 
 #### Hard Limits
 
@@ -170,9 +171,9 @@ AskUserQuestionTool が失敗、利用不可、または空のレスポンスを
 
 ```
 1. Update spec.json:
-   - Set phase to "requirements-generated"
    - Update timestamps
    - Record interview status if conducted
+   - Note: phase will be set to "requirements-approved" after Codex review approval
 2. Write requirements.md with generated content
 ```
 

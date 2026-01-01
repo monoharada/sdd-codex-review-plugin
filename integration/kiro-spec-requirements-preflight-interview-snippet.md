@@ -34,7 +34,8 @@
 +2.5 **Optional Preflight Interview (timeboxed, Japanese)**:
 +   - Purpose: clarify only high-risk unknowns WITHOUT slowing down generation.
 +   - Trigger ONLY if any of the following is true:
-+     - `.kiro/specs/$1/spec.json` phase is not `"requirements-generated"` (first run), OR
++     - `.kiro/specs/$1/spec.json` phase is `"initialized"` (first run), OR
++     - `.kiro/specs/$1/spec.json` approvals.requirements.approved is `false`, OR
 +     - `.kiro/specs/$1/requirements.md` project description is missing/thin, OR
 +     - `.kiro/specs/$1/spec.json` contains `interview.requirements: true`
 +   - Use AskUserQuestionTool in Japanese. Keep the requirements output language unchanged (still follow spec.json).
@@ -97,7 +98,8 @@
 
 | Condition | Check Method | Action |
 |-----------|--------------|--------|
-| First run | `spec.json` phase != `"requirements-generated"` | Run interview |
+| First run | `spec.json` phase == `"initialized"` | Run interview |
+| Requirements not approved | `approvals.requirements.approved` == `false` | Run interview |
 | Missing description | `requirements.md` project description missing/thin | Run interview |
 | Explicit flag | `spec.json` contains `interview.requirements: true` | Run interview |
 | None of above | - | Skip interview |
